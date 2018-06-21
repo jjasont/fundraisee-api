@@ -3,6 +3,8 @@ from rest_framework import status
 from django.urls import reverse
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
+import re
+
 
 class AccountsTestCase(APITestCase):
     def setUp(self):
@@ -37,6 +39,21 @@ class AccountsTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
         self.assertEqual(len(response.data['username']), 1)
+
+    def test_create_user_with_invalid_username(self):
+        data = {
+                'username': 'j@s!<>n',
+                'email': 'jason@test.com',
+                'password': 'jason'
+                }
+        regex_rule = '^(?!_)\w{3,15}$'
+        
+        response = self.client.post(self.create_url, data, format='json')
+        username_validity = re.search(regex_rule, response.data['username']) #return None if invalid
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+        self.assertEqual(len(response.data['username']), 1)
+        self.assertIsNotNone(username_validity)
 
     def test_create_user_with_no_username(self):
         data = {
